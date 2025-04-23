@@ -1,0 +1,16 @@
+{
+    "mcpServers": {
+        "postgres": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-postgres",
+                "postgresql://liuquehuan@localhost:5432/craigslist"
+            ]
+        },
+        "image_analyzer": {
+            "command": "uv",
+            "args": ["run", "/Users/liuquehuan/Downloads/科研/Agent/DBAgent/mcp_server/image_analyzer.py"]
+        }
+    }
+}
