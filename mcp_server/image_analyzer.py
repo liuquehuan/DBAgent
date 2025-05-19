@@ -1,9 +1,7 @@
 from mcp.server import FastMCP # type: ignore
 import base64
 from openai import OpenAI
-from dotenv import load_dotenv # type: ignore
-
-load_dotenv()
+import time
 
 ## 初始化 FastMCP 服务器
 app = FastMCP('image-analyzer')
@@ -15,39 +13,54 @@ def encode_image(image_path):
 
 
 @app.tool()
-async def analyze_image(image_path: str) -> str:
+async def analyze_image(image_paths: list[str]) -> list[str]:
     """
-    分析图片
+    analyze images
 
     Args:
-        path: 请求的图片路径
+        image_paths: the list of paths of the images
 
     Returns:
-        图片内容
+        the list of descriptions of each image
     """
-    image_path = "/Users/liuquehuan/Downloads/科研/Agent/DBAgent/" + image_path
-    base64_image = encode_image(image_path)
-    client = OpenAI()
+    start = time.time()
+    results = []
+    for image_path in image_paths:
+        image_path = "/Users/liuquehuan/Downloads/research/Agent/DBAgent/" + image_path
+        base64_image = encode_image(image_path)
+        # client = OpenAI(
+        #     api_key="83db886a9ca34175a97c31670216ef84.LHQrb8FovIxtIVLz",
+        #     base_url="https://open.bigmodel.cn/api/paas/v4/"
+        # )
+        client = OpenAI(api_key="None", base_url="http://10.77.110.188:30000/v1/")
+        # client = OpenAI(
+        #     api_key="sk-ydWjHrxTcGAshMZRMkTdDWZ5MjRkuAXKGB40JKIMEPgbFqxl",
+        #     base_url="https://api.ifopen.ai/v1/"
+        # )
 
-    response = client.chat.completions.create(
-        model="o3",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "这张图片里有什么?请简单描述描述，不超过20字"},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
+        response = client.chat.completions.create(
+            # model="glm-4v-plus-0111",
+            model="Qwen/Qwen2.5-VL-7B-Instruct",
+            # model="gpt-4.1",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Provide a concise description of what is in the image, in English."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
                         }
-                    }
-                ]
-            }
-        ]
-    )
-    # print(response.choices[0].message.content)
-    return response.choices[0].message.content
+                    ]
+                }
+            ]
+        )
+        results.append(response.choices[0].message.content)
+    end = time.time()
+    # return end - start
+    return results
 
 
 if __name__ == "__main__":

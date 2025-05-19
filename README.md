@@ -1,7 +1,12 @@
-# 建表
+# TAIJI: MCP-based Multi-Modal Data Analytics on Data Lakes
+
+The variety of data in data lakes presents significant challenges for data analytics, as data scientists must simultaneously analyze multi-modal data, including structured, semi-structured, and unstructured data. While Large Language Models (LLMs) have demonstrated promising capabilities, they still remain inadequate for multi-modal data analytics in terms of accuracy, efficiency, and freshness. First, current natural language (NL) or SQL-like query languages may struggle to precisely and comprehensively capture users' analytical intent. Second, relying on a single unified LLM to process diverse data modalities often leads to substantial inference overhead. Third, data stored in data lakes may be incomplete or outdated, making it essential to integrate external open-domain knowledge to generate timely and relevant analytics results.
+In [this paper](https://arxiv.org/abs/2505.11270), we envision a new multi-modal data analytics system. Specifically, we propose a novel architecture built upon the Model Context Protocol (MCP), an emerging paradigm that enables LLMs to collaborate with knowledgeable agents.
+
+# data preparation
 
 ```sql
-CREATE TABLE furnitures(
+CREATE TABLE furniture(
   aid bigint,
   time bigint,
   neighborhood text,
@@ -11,67 +16,43 @@ CREATE TABLE furnitures(
 	PRIMARY KEY (aid)
 );
 
-CREATE TABLE imgs(
+CREATE TABLE img(
   aid bigint,
   img text,
-	FOREIGN KEY (aid) REFERENCES furnitures(aid)
+	FOREIGN KEY (aid) REFERENCES furniture(aid)
 );
 
-CREATE TABLE imgs_3000(
+CREATE TABLE img_3000(
   aid bigint,
   img text,
-	FOREIGN KEY (aid) REFERENCES furnitures(aid)
+	FOREIGN KEY (aid) REFERENCES furniture(aid)
 );
 
-CREATE UNIQUE INDEX furniture_aid_idx ON furnitures (aid);
+CREATE UNIQUE INDEX furniture_aid_idx ON furniture (aid);
 
-COPY furnitures (time, neighborhood, title, url, price, aid) FROM 'furnitures.csv' CSV HEADER;
-COPY imgs (img, aid) FROM 'imgs.csv' CSV HEADER;
-COPY imgs_3000 (img, aid) FROM '3000_imgs.csv' CSV HEADER;
+COPY furniture (time, neighborhood, title, url, price, aid) FROM 'furnitures.csv' CSV HEADER;
+COPY img (img, aid) FROM 'imgs.csv' CSV HEADER;
+COPY img_3000 (img, aid) FROM '3000_imgs.csv' CSV HEADER;
 ```
 
-# 构建server
+# build server
 
 ```bash
 mkdir mcp_server
 cd mcp_server
-# python>=3.10，否则不兼容mcp包
+# python>=3.10
 uv python pin 3.12
 uv init
 uv add "mcp[cli]"
 uv venv
 source .venv/bin/activate
 
-# 测试server
+# to test server
 npx -y @modelcontextprotocol/inspector uv run image_analyzer.py
 ```
 
-servers_config.json的配置和image_analyzer.py的绝对路径要改一下
-
-# 测试
+# run
 
 ```python
 python dbagent.py
 ```
-
-找出title中包含“wooden”且图片中包含粉色椅子的家具的最小价格。
-
-prompt示例：
-
-我需要你找出title中包含“wooden”且图片中包含粉色椅子的家具的最小价格。为此，你可能需要：1.找出title中包含“wooden”的所有家具，按价格升序排序；2.调用工具依次分析它们对应的图片，看看是否有粉色椅子。对于每个家具，你可以只查看它的一张图片。
-
-任务比较复杂，需要进行多轮对话去引导llm。比如可以拆解成：
-
-调用工具查看数据库中所有的表。
-
-找出title中包含“wooden”的所有家具，按价格升序排序。
-
-依次调用工具分析它们对应的图片，看看是否有粉色椅子。
-
-# todo
-
-1.解决cleanup的asyncio报错
-
-2.分析图片的server换成本地小模型
-
-3.完善system prompt

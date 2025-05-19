@@ -5,6 +5,7 @@ import os
 import shutil
 from contextlib import AsyncExitStack
 from typing import Any
+import time
 
 import httpx
 from dotenv import load_dotenv # type: ignore
@@ -255,9 +256,12 @@ class LLMClient:
 
         try:
             with httpx.Client() as client:
+                start = time.time()
                 response = client.post(url, headers=headers, json=payload, timeout=100)
                 response.raise_for_status()
                 data = response.json()
+                end = time.time()
+                logging.info(f"time of getting response: {start - end}")
                 return data["choices"][0]["message"]["content"]
 
         except httpx.RequestError as e:
@@ -319,6 +323,7 @@ class ChatSession:
                     tools = await server.list_tools()
                     if any(tool.name == tool_call["tool"] for tool in tools):
                         try:
+                            start = time.time()
                             result = await server.execute_tool(
                                 tool_call["tool"], tool_call["arguments"]
                             )
@@ -331,6 +336,8 @@ class ChatSession:
                                     f"Progress: {progress}/{total} "
                                     f"({percentage:.1f}%)"
                                 )
+                            end = time.time()
+                            logging.info(f"time of executing tool: {start - end}")
 
                             return f"Tool execution result: {result}"
                         except Exception as e:
@@ -382,12 +389,15 @@ class ChatSession:
                 "5. Avoid simply repeating the raw data\n\n"
                 "Please use only the tools that are explicitly defined above.\n\n"
 
-                "You are a database analysis assistant, and you can access the PostgreSQL databases named craigslist, read the schema information for each table in the given database, and execute SQL queries.\n"
+                "You are a database analysis assistant, and you can access the PostgreSQL database named craigslist, read the schema information for each table in the given database, and execute SQL queries.\n"
                 "VERY IMPORTANT: You MUST NOT fabricate non-existent tables or columns, you MUST ONLY use tables and columns that actually exist in the database.\n"
+                # "ALWAYS USE THE TOOLS to get the information about the table names, column names, etc. DO NOT make up any information.\n"
                 "Which means you should first confirm the information about table names, column names, etc.\n"
                 "You can call the tools for multiple times if necessary, for example: when you execute a wrong sql and want to fix it, or when you have to execute more than 1 sql to complete a task.\n\n"
 
-                "The column \"img\" of the table \"imgs\" contains the image path. You MUST use the tool to analyze the image if necessary."
+                "The column \"img\" of the table \"imgs\" contains the image path. You MUST USE THE TOOLS to analyze the image if necessary.\n\n"
+
+                "Remember: ALWAYS be aware of THE TOOLS you are available of."
             )
 
             messages = [{"role": "system", "content": system_message}]

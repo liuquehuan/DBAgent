@@ -9,8 +9,8 @@
             ]
         },
         "image_analyzer": {
-            "command": "uv",
-            "args": ["run", "/Users/liuquehuan/Downloads/科研/Agent/DBAgent/mcp_server/image_analyzer.py"]
+            "command": "/Users/liuquehuan/Downloads/research/Agent/DBAgent/mcp_server/.venv/bin/python",
+            "args": ["mcp_server/image_analyzer.py"]
         }
     }
 }
